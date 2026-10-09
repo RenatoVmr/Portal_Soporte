@@ -1,42 +1,43 @@
 using SupportPortal.Api.Repositories;
 using SupportPortal.Api.Services;
-using MySqlConnector;
 using SupportPortal.Api.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<CustomerAccountRepository>();
 builder.Services.AddScoped<CustomerAccountService>();
+
+var frontendOrigin = builder.Configuration["FrontendOrigin"]
+    ?? (builder.Environment.IsDevelopment() ? "http://localhost:5173" : null);
+
+if (string.IsNullOrWhiteSpace(frontendOrigin))
+{
+    throw new InvalidOperationException(
+        "FrontendOrigin must be configured outside the Development environment.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(frontendOrigin.TrimEnd('/'))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseCors("Frontend");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-
-
-
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapGet("/api/customers/search", async Task<IResult> (
     string? documentNumber,
@@ -79,6 +80,7 @@ app.MapPut("/api/accounts/{accountId:int}/status", async Task<IResult> (
         });
     }
 });
+
 app.MapGet("/api/customers", async (CustomerAccountService service) =>
 {
     var customers = await service.ListAllAsync();
@@ -86,8 +88,3 @@ app.MapGet("/api/customers", async (CustomerAccountService service) =>
 });
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
