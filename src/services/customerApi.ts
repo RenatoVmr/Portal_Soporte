@@ -10,7 +10,10 @@ export interface CustomerAccount {
   statusReason: string | null;
 }
 
-const API_URL = "http://localhost:5016";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5016").replace(
+  /\/+$/,
+  ""
+);
 
 export async function getCustomers(): Promise<CustomerAccount[]> {
   const response = await fetch(`${API_URL}/api/customers`);
