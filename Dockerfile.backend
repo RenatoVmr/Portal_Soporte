@@ -3,12 +3,10 @@ WORKDIR /src
 
 COPY backend/SupportPortal.Api.csproj backend/
 WORKDIR /src/backend
-RUN dotnet restore SupportPortal.Api.csproj
 
 COPY backend/ ./
 RUN dotnet publish SupportPortal.Api.csproj \
     --configuration Release \
-    --no-restore \
     --output /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
